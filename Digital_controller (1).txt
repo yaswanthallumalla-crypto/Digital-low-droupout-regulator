@@ -1,0 +1,43 @@
+`include "constants.vams"
+`include "disciplines.vams"
+
+module shift_register_4bit (
+    input clk,       // Clock (electrical)
+    input comp,      // Comparator output (electrical)
+    input reset,     // Asynchronous reset (electrical)
+    output Q3, Q2, Q1, Q0   // Shift register outputs (electrical)
+);
+
+    electrical clk, comp, reset, Q3, Q2, Q1, Q0;
+    integer shift_reg;
+
+    analog begin
+        @(initial_step) begin
+            shift_reg = 0; // Initialize to 0000
+        end
+
+        // Handle synchronous reset and shifting on clock rising edge
+        @(cross(V(clk) - 0.5, +1)) begin
+            if (V(reset) > 0.5) begin
+                shift_reg = 0; // Reset to 0000
+            end else begin
+                if (V(comp) > 0.5) begin
+                    // Shift left and insert 1 at LSB
+                    shift_reg = ((shift_reg & 7) << 1) | 1;
+                end else begin
+                    // Shift right and insert 0 at MSB
+                    shift_reg = (shift_reg >> 1);
+                end
+            end
+            // Ensure 4-bit value
+            shift_reg = shift_reg & 15;
+        end
+
+        // Drive output voltages based on shift_reg
+        V(Q3) <+ ((shift_reg & 8) ? 1.2 : 0.0);
+        V(Q2) <+ ((shift_reg & 4) ? 1.2 : 0.0);
+        V(Q1) <+ ((shift_reg & 2) ? 1.2 : 0.0);
+        V(Q0) <+ ((shift_reg & 1) ? 1.2 : 0.0);
+    end
+
+endmodule
